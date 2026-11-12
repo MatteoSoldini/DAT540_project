@@ -1,0 +1,198 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[numbers]{natbib}
+\usepackage{url}
+
+\title{Explainable Machine Learning for Gallstone Disease}
+\author{Matteo Soldini, Syed Sakibur Rahman, Irtaza Bin Ashar}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+We use the Gallstone dataset~\cite{gallstone_1150}.
+
+The objective of this project is therefore twofold:
+\begin{enumerate}
+\item Develop a machine-learning model that can distinguish patients with and without gallstone disease.
+\item Investigate which clinical characteristics contribute most to the model's predictions.
+\end{enumerate}
+
+\section{Methods}
+\label{sec:methods}
+
+\subsection{Dataset}
+\label{ssec:dataset}
+
+\subsubsection{Overview}
+\label{ssec:overview}
+
+The Gallstone dataset~\cite{gallstone_1150} was collected at the Internal
+Medicine Outpatient Clinic of Ankara VM Medical Park Hospital between June 2022
+and June 2023. It contains 319 records, one per patient, and 39 columns: the binary target
+variable \emph{Gallstone Status} and 38 features. In the original coding, the
+target takes the value 0 for patients with gallstones and 1 for patients
+without.
+
+The features fall into three groups:
+\begin{itemize}
+\item \textbf{Demographic:} age, gender, height, weight and body mass index (BMI);
+\item \textbf{Bioimpedance:} body composition measurements, such as total,
+  extracellular and intracellular body water, muscle and fat mass, protein
+  content, visceral fat area and hepatic fat accumulation;
+\item \textbf{Laboratory:} blood test results, including glucose, total
+  cholesterol, LDL, HDL, triglycerides, liver enzymes (AST, ALT, ALP),
+  creatinine, glomerular filtration rate, C-reactive protein (CRP), hemoglobin
+  and vitamin D.
+\end{itemize}
+The dataset also records comorbidities (coronary artery disease,
+hypothyroidism, hyperlipidemia and diabetes mellitus) as binary indicators,
+together with the total number of comorbid conditions. Hepatic fat
+accumulation is an ordinal grade from 0 (none) to 4 (very severe). All other
+features are numerical.
+
+The classes are nearly balanced: 161 patients (50.5\%) were diagnosed with
+gallstone disease and 158 (49.5\%) were not
+(Table~\ref{tab:class_balance}). The dataset contains no missing values and no
+duplicate records.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrr}
+\hline
+Gallstone Status & Patients & Share \\
+\hline
+Present (0) & 161 & 50.5\% \\
+Absent (1)  & 158 & 49.5\% \\
+\hline
+Total       & 319 & 100\% \\
+\hline
+\end{tabular}
+\caption{Class distribution of the target variable.}
+\label{tab:class_balance}
+\end{table}
+
+\subsubsection{Cleaning}
+\label{ssec:cleaning}
+
+\paragraph{Implausible Values}
+
+To identify candidate outliers, we computed the mean and standard deviation of
+each feature and flagged all values lying more than ten standard deviations
+from the feature mean ($|z| > 10$). This conservative threshold targets only
+extreme values that are likely to be data-entry errors rather than natural
+variation. Five values in four records exceeded it
+(Table~\ref{tab:outliers}). Each was then checked for clinical plausibility
+and for consistency with related features in the same record.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llrrrr}
+\hline
+Record & Feature & Value & Mean & Std & $z$ \\
+\hline
+40  & Glucose & 575.0 & 108.69 & 44.85 & 10.40 \\
+239 & Obesity (\%) & 1954.0 & 35.85 & 109.80 & 17.47 \\
+278 & Aspartat Aminotransferaz (AST) & 195.0 & 21.68 & 16.70 & 10.38 \\
+    & Alanin Aminotransferaz (ALT) & 372.0 & 26.86 & 27.88 & 12.38 \\
+318 & High Density Lipoprotein (HDL) & 273.0 & 49.48 & 17.72 & 12.62 \\
+\hline
+\end{tabular}
+\caption{Values more than ten standard deviations from the feature mean.
+Mean and standard deviation are computed on the uncorrected data.}
+\label{tab:outliers}
+\end{table}
+
+Record 40 belongs to a patient without diabetes mellitus but reports a glucose
+level of 575~mg/dl. Freckmann et al.~\cite{freckmann2007glucose} report a mean
+24-hour interstitial glucose concentration of $89.3 \pm 6.2$~mg/dl in healthy
+subjects under everyday life conditions. Even the highest postprandial values,
+observed after breakfast, did not exceed 168~mg/dl. A value of 575~mg/dl is
+therefore implausible for a non-diabetic patient, and the record was removed.
+
+Record 239 reports an obesity percentage of 1954\%, which is physiologically
+impossible. The height, weight and BMI of this record are mutually consistent
+($65.9 / 1.50^2 \approx 29.3$). Obesity percentage is derived from BMI relative
+to an ideal BMI, and a value of 19.54\% is consistent with the reference BMI
+implied by the other records. We therefore attribute the value to a missing
+decimal point and corrected it to 19.54\%.
+
+Record 278 shows elevated levels of both AST (195~U/l) and ALT (372~U/l).
+Although extreme, the simultaneous elevation of the two liver enzymes forms a
+coherent clinical picture of liver involvement, which can occur in
+gallstone disease when stones obstruct the bile ducts. These values were
+therefore considered plausible and retained.
+
+Record 318 reports an HDL level of 273~mg/dl. Since total cholesterol includes
+both LDL and HDL, their sum cannot exceed it. In this record, however,
+LDL + HDL $= 155 + 273 = 428$~mg/dl, exceeding the total cholesterol of
+296~mg/dl. The value is therefore inconsistent, and the record was removed.
+
+\paragraph{Features Cross-Correlation} 
+
+Many bioimpedance features in the dataset measure closely related aspects of
+body composition, so several of them carry nearly identical information.
+Strongly correlated features add little predictive information, but they make
+linear models harder to interpret: the coefficients become unstable, and the
+effect of a single underlying quantity can be split between several features.
+For this reason, we computed the pairwise Pearson correlation between all
+features and removed redundant ones. Six pairs exceeded our threshold of
+$|r| > 0.9$ (Table~\ref{tab:correlations}).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llr}
+\hline
+Feature A & Feature B & $|r|$ \\
+\hline
+Total Body Fat Ratio (TBFR) (\%) & Lean Mass (LM) (\%) & 0.994 \\
+Total Body Water (TBW) & Muscle Mass (MM) & 0.928 \\
+Body Mass Index (BMI) & Obesity (\%) & 0.918 \\
+Total Body Water (TBW) & Extracellular Water (ECW) & 0.904 \\
+Intracellular Water (ICW) & Muscle Mass (MM) & 0.904 \\
+Body Mass Index (BMI) & Total Fat Content (TFC) & 0.903 \\
+\hline
+\end{tabular}
+\caption{Feature pairs with absolute Pearson correlation above 0.9.}
+\label{tab:correlations}
+\end{table}
+
+\subsection{Models}
+
+\subsubsection{Logistic Regression}
+
+- What is Logistic Regression?
+- Regularization parameter
+
+\subsubsection{Logistic Regression + Log transformation}
+
+- Why log transform some features
+
+\subsubsection{Random Forest}
+
+- What's Random Forest, How does it work?
+
+\subsection{Performance Metric}
+
+ROC AUC (Receiver Operating Characteristic - Area Under the Curve) is a standard evaluation metric for binary classification machine learning models.
+
+\subsection{Feature evaluation}
+
+Permutation feature importance is a model-agnostic technique that measures a feature's contribution by randomly shuffling its values and observing the resulting drop in model performance.
+
+\section{Results}
+\label{sec:results}
+
+
+
+\section{Conclusion}
+\label{sec:Conclusion}
+
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
