@@ -1,7 +1,10 @@
-\documentclass[a4paper,12pt]{article}
+\documentclass[a4paper,11pt]{article}
 
 \usepackage[numbers]{natbib}
 \usepackage{url}
+\usepackage{booktabs}
+\usepackage{makecell}
+\usepackage{amsmath}
 
 \title{Explainable Machine Learning for Gallstone Disease}
 \author{Matteo Soldini, Syed Sakibur Rahman, Irtaza Bin Ashar}
@@ -74,6 +77,10 @@ Total       & 319 & 100\% \\
 \caption{Class distribution of the target variable.}
 \label{tab:class_balance}
 \end{table}
+
+The data was first split into a training set (80\%) and a held-out test set
+(20\%), stratified by gallstone status so that both sets preserve the class
+balance. The test set was not used until the final evaluation.
 
 \subsubsection{Cleaning}
 \label{ssec:cleaning}
@@ -163,30 +170,242 @@ Body Mass Index (BMI) & Total Fat Content (TFC) & 0.903 \\
 \subsection{Models}
 
 \subsubsection{Logistic Regression}
+\label{sssec:logreg}
 
-- What is Logistic Regression?
-- Regularization parameter
+Logistic regression is a linear model for binary classification. For a
+patient with feature vector $\mathbf{x}$, it computes a weighted sum of the
+features and maps it to a probability through the sigmoid function:
+\begin{equation}
+P(y = 1 \mid \mathbf{x}) = \sigma(\mathbf{w}^\top \mathbf{x} + b)
+  = \frac{1}{1 + e^{-(\mathbf{w}^\top \mathbf{x} + b)}},
+\end{equation}
+where $\mathbf{w}$ is the vector of feature weights and $b$ the intercept.
+Equivalently, the log-odds of the outcome are a linear function of the
+features, so each weight describes how strongly, and in which direction, its
+feature shifts the predicted risk. A patient is assigned to the positive class
+when the predicted probability exceeds 0.5.
+
+The weights are learned by minimizing the log-loss on the training data,
+together with an $L_2$ penalty on the weights (regularization):
+\begin{equation}
+\min_{\mathbf{w}, b} \; \frac{1}{2}\lVert \mathbf{w} \rVert^2
+  + C \sum_{i=1}^{n} \ell\left(y_i, \sigma(\mathbf{w}^\top \mathbf{x}_i + b)\right),
+\end{equation}
+where $\ell$ is the log-loss. The penalty pushes the weights toward zero,
+which discourages the model from fitting noise in the training data. The
+hyperparameter $C$ controls the trade-off: small values impose strong
+regularization and yield simpler models, while large values let the model fit
+the training data more closely, at the risk of overfitting.
+
+Because the penalty acts on all weights equally, features must be on
+comparable scales. Before fitting all features were standardized to zero mean and unit variance.
+
+\paragraph{Selection of the regularization parameter}
+To select $C$, we evaluated the values $C \in \{10^{-3}, 10^{-2}, \dots, 10^{3}\}$ using
+stratified 5-fold cross-validation on the training set. For each candidate
+value, the model was trained on four folds and evaluated on the fifth, and
+the ROC AUC was averaged over the five folds. The value with the highest mean
+ROC AUC, $C = 10$, was selected.
 
 \subsubsection{Logistic Regression + Log transformation}
+\label{sssec:logreg_log}
 
-- Why log transform some features
+Logistic regression assumes that each feature affects the log-odds of the
+outcome linearly: every unit increase of a feature shifts the log-odds by the
+same amount, regardless of the feature's starting value. This assumption fits
+poorly for strongly right-skewed features, where most patients have values in
+a narrow range and a few have values many times higher. For such features, the
+relevant variation is often multiplicative rather than additive. A
+single linear weight cannot represent both ranges well. In addition, the few
+extreme patients have a disproportionate influence on the fitted weights, and
+they inflate the standard deviation used for standardization, which compresses
+the remaining patients into a narrow range of values.
+
+To identify such features, we computed the sample skewness of each continuous
+feature on the training set. Binary and ordinal features were excluded. Seven
+features had a skewness above 1:
+four laboratory measurements (AST, CRP, glucose, ALT), triglycerides, and two
+body composition measurements (visceral fat area and intracellular water)
+(Table~\ref{tab:skewness}). All seven were transformed as
+\begin{equation}
+x' = \log(1 + x),
+\end{equation}
+before standardization. A logarithmic transformation reduces skewness and
+turns multiplicative relationships into additive ones, which suits models that
+assume additive effects, such as logistic regression~\cite{mlm_logarithms}.
+On a logarithmic scale, equal steps correspond to equal ratios, so the model's
+linear weight describes the effect of a relative change, such as a doubling of
+CRP. The transformation spreads out values in the normal range and compresses
+the tail, while preserving the order of all values. The added constant ensures
+that zero values are mapped to zero instead of being
+undefined~\cite{mlm_logarithms}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrr}
+\toprule
+Feature & Skewness & After log \\
+\midrule
+Aspartat Aminotransferaz (AST)   & 6.57 &  1.67 \\
+C-Reactive Protein (CRP)         & 5.16 &  1.63 \\
+Glucose                          & 4.40 &  2.72 \\
+Alanin Aminotransferaz (ALT)     & 3.98 &  0.66 \\
+Triglyceride                     & 2.83 & $-0.82$ \\
+Visceral Fat Area (VFA)          & 1.24 & $-0.73$ \\
+Intracellular Water (ICW)        & 1.09 &  0.18 \\
+\bottomrule
+\end{tabular}
+\caption{Features with skewness above 1 on the training set, before and after
+the transformation $\log(1 + x)$.}
+\label{tab:skewness}
+\end{table}
+
+The transformation substantially reduced the skewness of all seven features.
+Glucose, AST and CRP remained moderately skewed, because of a small number of
+very high values, while triglycerides and visceral fat area became slightly
+left-skewed.
+
+Apart from this step, the model is identical to the logistic regression
+described in Section~\ref{sssec:logreg}, and the regularization parameter was
+selected with the same cross-validation procedure, which resulted in
+$C = 1$. Since the benefit of a transformation depends on the data and
+the model, we did not assume an improvement, but evaluated it empirically by
+comparing the cross-validated performance of the models with and without the
+transformation.
 
 \subsubsection{Random Forest}
 
 - What's Random Forest, How does it work?
 
 \subsection{Performance Metric}
+\label{ssec:metric}
 
-ROC AUC (Receiver Operating Characteristic - Area Under the Curve) is a standard evaluation metric for binary classification machine learning models.
+We used the area under the receiver operating characteristic curve (ROC AUC)
+as the main performance metric, both to select the regularization parameter
+and to compare models. ROC AUC is a standard evaluation metric for binary
+classifiers.
+
+A classifier such as logistic regression outputs a score, or probability, for
+each patient, and assigns the patient to the positive class (gallstones
+present) when the score exceeds a chosen threshold. Each threshold yields a
+true positive rate (TPR) and a false positive rate (FPR):
+\begin{equation}
+\mathrm{TPR} = \frac{TP}{TP + FN}, \qquad
+\mathrm{FPR} = \frac{FP}{FP + TN},
+\end{equation}
+where $TP$, $FN$, $FP$ and $TN$ are the numbers of true positives, false
+negatives, false positives and true negatives. The ROC curve plots the TPR
+against the FPR over all possible thresholds, and thus describes the model's
+performance independently of any single threshold~\cite{google_rocauc}.
+
+The area under this curve (AUC) has a direct interpretation: it is the
+probability that the model assigns a higher score to a randomly chosen
+positive example than to a randomly chosen negative one~\cite{google_rocauc}.
+An AUC of 1.0 corresponds to a perfect ranking of all patients, while an AUC
+of 0.5 corresponds to random guessing~\cite{google_rocauc}. In our setting, an
+AUC of 0.85, for example, means that a randomly chosen patient with gallstones
+receives a higher predicted risk than a randomly chosen patient without
+gallstones in 85\% of cases.
+
+ROC AUC is well suited to comparing models when
+the classes are roughly balanced~\cite{google_rocauc}, which holds for our
+dataset (Section~\ref{ssec:overview}).
 
 \subsection{Feature evaluation}
+\label{ssec:feature_evaluation}
 
-Permutation feature importance is a model-agnostic technique that measures a feature's contribution by randomly shuffling its values and observing the resulting drop in model performance.
+To identify the clinical characteristics that contribute most to the models'
+predictions, we used permutation feature importance (PFI). PFI is a
+model-agnostic technique: it treats the trained model as a black box, so the
+same procedure applies to logistic regression and random forests alike. It
+measures how much the model's performance drops when the information in a
+feature is destroyed~\cite{molnar2025}.
+
+The idea is simple. The values of one feature are randomly shuffled across
+patients, which breaks the relationship between that feature and the outcome
+while leaving its distribution unchanged. If the model relied on the feature,
+its predictions become worse; if the model ignored it, its performance stays
+the same~\cite{molnar2025}. Since we measure performance with ROC AUC, where
+higher is better, the importance of feature $j$ is the decrease in AUC:
+\begin{equation}
+\mathrm{FI}_j = \mathrm{AUC}_{\mathrm{orig}}
+  - \frac{1}{K}\sum_{k=1}^{K} \mathrm{AUC}_{\mathrm{perm},j,k},
+\end{equation}
+where $\mathrm{AUC}_{\mathrm{perm},j,k}$ is the AUC after the $k$-th random
+permutation of feature $j$. Because the shuffling is random, the result varies
+between permutations; repeating the permutation and averaging stabilizes the
+estimate~\cite{molnar2025}. We used $K = 10$ permutations.
+
+Importance should be computed on data that was not used to train the model.
+Otherwise, an overfitting model can make irrelevant features appear
+important~\cite{molnar2025}. We therefore computed PFI within the repeated
+stratified 5-fold cross-validation on the training set (5 repeats): in each of
+the 25 folds, the model was trained on four folds and the importance was
+computed on the held-out fold. For each feature, we report the mean and
+standard deviation of the importance over the 25 folds, together with the
+fraction of folds in which the feature ranked among the five most important
+(\emph{top-5 rate}). This last measure indicates how stable a feature's
+importance is across different splits of the data. The test set was not used.
+
+PFI has two limitations that are relevant to our analysis. First, it shows how
+much a feature matters, but not in which direction it affects the
+prediction~\cite{molnar2025}. Second, it is sensitive to correlated features.
+Shuffling one of two correlated features creates unrealistic patients, and
+correlated features can split their importance between them, so that each
+appears less important than the underlying signal~\cite{molnar2025}. The
+removal of highly correlated features (Section~\ref{ssec:cleaning}) reduces,
+but does not eliminate, this effect.
 
 \section{Results}
 \label{sec:results}
 
+\subsection{Model}
 
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Model & CV ROC AUC & Test ROC AUC \\
+\midrule
+logreg & $0.864 \pm 0.041$ & 0.854 \\
+logreg + log & $0.889 \pm 0.035$ & 0.897 \\
+random forest & $0.849 \pm 0.058$ & 0.861 \\
+\bottomrule
+\end{tabular}
+\caption{Cross-validated ROC AUC on the training set (repeated stratified
+5-fold cross-validation, 5 repeats). Values are mean $\pm$ standard deviation
+across the 25 folds.}
+\label{tab:cv_results}
+\end{table}
+
+\subsection{Relevant clinical features}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+Feature & LR & LR + log & RF & Sum \\
+\midrule
+CRP        & 0.56 & 1.00 & 1.00 & 2.56 \\
+BM         & 1.00 & 0.96 & 0.48 & 2.44 \\
+Vitamin D  & 0.12 & 0.56 & 1.00 & 1.68 \\
+AST        & 0.36 & 0.44 & 0.72 & 1.52 \\
+ECF/TBW    & 0.08 & 0.44 & 0.92 & 1.44 \\
+ICW        & 0.68 & 0.52 & 0.08 & 1.28 \\
+TBFR (\%)  & 0.80 & 0.00 & 0.04 & 0.84 \\
+Gender     & 0.68 & 0.12 & 0.00 & 0.80 \\
+\bottomrule
+\end{tabular}
+\caption{Top-5 rate of the eight most consistently important features: the
+fraction of the 25 cross-validation folds in which the feature ranked among the
+five most important by permutation importance, sorted by the sum across models.
+LR: logistic regression; LR + log: logistic regression with log-transformed
+features; RF: random forest. CRP: C-reactive protein; BM: bone mass;
+AST: aspartate aminotransferase; ECF/TBW: extracellular fluid/total body water;
+ICW: intracellular water; TBFR: total body fat ratio.}
+\label{tab:top5_rate}
+\end{table}
 
 \section{Conclusion}
 \label{sec:Conclusion}
