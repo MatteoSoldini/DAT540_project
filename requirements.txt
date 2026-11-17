@@ -4,3 +4,4 @@ python-calamine
 scikit-learn
 matplotlib
 nbformat
+interpret
