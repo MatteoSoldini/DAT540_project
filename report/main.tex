@@ -299,9 +299,76 @@ the model, we did not assume an improvement, but evaluated it empirically by
 comparing the cross-validated performance of the models with and without the
 transformation.
 
-\subsubsection{Random Forest}
+\subsubsection{Explainable Boosting Machine (EBM)}
+\label{sssec:ebm}
 
-- What's Random Forest, How does it work?
+Logistic regression restricts every feature to a linear effect on the
+log-odds, and the log transformation in Section~\ref{sssec:logreg_log} only
+replaces this with a different shape chosen in advance. Tree ensembles such as
+random forests can learn arbitrary non-linear effects and interactions, but
+the resulting model is a black box whose predictions can only be explained
+after the fact. The Explainable Boosting Machine
+(EBM)~\cite{nori2019interpretml} aims to combine the accuracy of tree
+ensembles with the interpretability of linear models. It is a generalized
+additive model with pairwise interactions
+(GA$^2$M)~\cite{lou2012intelligible,lou2013accurate}:
+\begin{equation}
+\log\frac{P(y = 1 \mid \mathbf{x})}{1 - P(y = 1 \mid \mathbf{x})}
+  = \beta_0 + \sum_{j} f_j(x_j) + \sum_{(j,k) \in \mathcal{I}} f_{jk}(x_j, x_k),
+\end{equation}
+where $\beta_0$ is an intercept, each $f_j$ is a \emph{shape function} that
+describes the effect of feature $j$ on its own, and $\mathcal{I}$ is a small
+set of feature pairs whose joint effect is modelled by a two-dimensional
+function $f_{jk}$. Compared with logistic regression, the linear term
+$w_j x_j$ is replaced by a function $f_j(x_j)$ learned from the data, so the
+model can represent thresholds, saturation and other non-linear effects.
+Because the prediction is still a sum of one term per feature or feature
+pair, the contribution of each feature to an individual prediction can be read
+off exactly, and each shape function can be plotted as a graph of its
+contribution against the feature value~\cite{lou2012intelligible}. Since the
+target is coded as 1 for patients without gallstones
+(Section~\ref{ssec:overview}), the model describes the log-odds of
+\emph{not} having gallstones: a positive contribution lowers the predicted
+gallstone risk, and a negative contribution raises it.
+
+The shape functions are learned with a restricted form of gradient
+boosting~\cite{lou2012intelligible,nori2019interpretml}. Each feature is first
+discretized into a fixed number of bins. In every boosting round, the
+algorithm cycles through the features one at a time and, for each, fits a
+shallow regression tree on that single feature to the current residuals,
+scaled by a small learning rate. Because every tree uses only one feature, all
+trees for a feature add up to a single function $f_j$, and the small learning
+rate makes the result independent of the order in which the features are
+visited. After the main effects have been learned, the FAST
+algorithm~\cite{lou2013accurate} ranks all feature pairs by how much a joint
+term would reduce the remaining error. The highest-ranked pairs are added as
+interaction terms and trained on the residuals in the same way. Finally, the
+whole procedure is repeated on several random subsamples of the training data
+(\emph{outer bags}) and the resulting models are averaged, which reduces
+variance and provides an uncertainty estimate for each shape
+function~\cite{nori2019interpretml}.
+
+Since the EBM operates on binned feature values, it depends only on the order
+of the values and not on their scale. Neither standardization nor the log
+transformation is therefore needed, and the skewed features were used in their
+original form. The binary features (gender and the four comorbidity
+indicators) were declared as categorical, so that the model learns one score
+per category. We used the implementation in the InterpretML
+library~\cite{nori2019interpretml}.
+
+\paragraph{Selection of the hyperparameters}
+We tuned four hyperparameters, each with two candidate values: the learning
+rate ($\{0.01, 0.05\}$), the maximum number of interaction terms
+($\{0, 5\}$, where 0 yields a purely additive model), the minimum number of
+training patients per leaf ($\{2, 8\}$, where larger values yield smoother
+shape functions), and the maximum number of bins per feature
+($\{64, 256\}$). All 16 combinations were evaluated with the same stratified
+5-fold cross-validation and ROC AUC criterion as for logistic regression
+(Section~\ref{sssec:logreg}). The selected configuration used a learning rate
+of 0.05, five interaction terms, at least 8 patients per leaf and at most 64
+bins. Both the coarser binning and the larger minimum leaf size constrain the
+shape functions to be smoother, which is consistent with the small size of the
+training set.
 
 \subsection{Performance Metric}
 \label{ssec:metric}
@@ -311,10 +378,10 @@ as the main performance metric, both to select the regularization parameter
 and to compare models. ROC AUC is a standard evaluation metric for binary
 classifiers.
 
-A classifier such as logistic regression outputs a score, or probability, for
-each patient, and assigns the patient to the positive class (gallstones
-present) when the score exceeds a chosen threshold. Each threshold yields a
-true positive rate (TPR) and a false positive rate (FPR):
+A classifier such as logistic regression outputs a score, or probability, for 
+each patient and assigns the patient to the positive class (label 1,
+gallstones absent) when the score exceeds a chosen threshold. Each threshold yields a. 
+Each threshold yields a true positive rate (TPR) and a false positive rate (FPR):
 \begin{equation}
 \mathrm{TPR} = \frac{TP}{TP + FN}, \qquad
 \mathrm{FPR} = \frac{FP}{FP + TN},
@@ -343,7 +410,7 @@ dataset (Section~\ref{ssec:overview}).
 To identify the clinical characteristics that contribute most to the models'
 predictions, we used permutation feature importance (PFI). PFI is a
 model-agnostic technique: it treats the trained model as a black box, so the
-same procedure applies to logistic regression and random forests alike. It
+same procedure applies to all models in this study alike. It
 measures how much the model's performance drops when the information in a
 feature is destroyed~\cite{molnar2025}.
 
@@ -382,6 +449,16 @@ appears less important than the underlying signal~\cite{molnar2025}. The
 removal of highly correlated features (Section~\ref{ssec:cleaning}) reduces,
 but does not eliminate, this effect.
 
+For the EBM, permutation importance can be complemented by the model's own
+structure. The \emph{term importance} of a term is the mean absolute value of
+its contribution to the log-odds over the training
+patients~\cite{nori2019interpretml}. Unlike permutation importance, the shape
+functions also show the direction and form of each effect, which addresses the
+first limitation above. Interaction terms, on the other hand, affect the
+interpretation of permutation importance: shuffling a feature also destroys
+every interaction term that contains it, so its permutation importance
+includes the effect of those interactions.
+
 \section{Results}
 \label{sec:results}
 
@@ -395,7 +472,7 @@ Model & CV ROC AUC & Test ROC AUC \\
 \midrule
 logreg & $0.864 \pm 0.041$ & 0.854 \\
 logreg + log & $0.889 \pm 0.035$ & 0.897 \\
-random forest & $0.849 \pm 0.058$ & 0.861 \\
+EBM & $0.887 \pm 0.046$ & 0.892 \\
 \bottomrule
 \end{tabular}
 \caption{Cross-validated ROC AUC on the training set (repeated stratified
@@ -404,34 +481,45 @@ across the 25 folds.}
 \label{tab:cv_results}
 \end{table}
 
+The EBM reached a cross-validated ROC AUC of ...
+   (rest of block 3b)
+... regarded as indications rather than established effects.
+
 \subsection{Relevant clinical features}
 
 \begin{table}[h]
 \centering
 \small
-\begin{tabular}{lcccc}
+\begin{tabular}{lccccc}
 \toprule
-Feature & LR & LR + log & RF & Sum \\
+Feature & LR & LR + log & RF & EBM & Sum \\
 \midrule
-CRP        & 0.56 & 1.00 & 1.00 & 2.56 \\
-BM         & 1.00 & 0.96 & 0.48 & 2.44 \\
-Vitamin D  & 0.12 & 0.56 & 1.00 & 1.68 \\
-AST        & 0.36 & 0.44 & 0.72 & 1.52 \\
-ECF/TBW    & 0.08 & 0.44 & 0.92 & 1.44 \\
-ICW        & 0.68 & 0.52 & 0.08 & 1.28 \\
-TBFR (\%)  & 0.80 & 0.00 & 0.04 & 0.84 \\
-Gender     & 0.68 & 0.12 & 0.00 & 0.80 \\
+CRP        & 0.56 & 1.00 & 1.00 & 1.00 & 3.56 \\
+BM         & 1.00 & 0.96 & 0.48 & 0.76 & 3.20 \\
+Vitamin D  & 0.12 & 0.56 & 1.00 & 0.80 & 2.48 \\
+ECF/TBW    & 0.08 & 0.44 & 0.92 & 0.88 & 2.32 \\
+AST        & 0.36 & 0.44 & 0.72 & 0.12 & 1.64 \\
+ICW        & 0.68 & 0.52 & 0.08 & 0.00 & 1.28 \\
+TBFR (\%)  & 0.80 & 0.00 & 0.04 & 0.00 & 0.84 \\
+Gender     & 0.68 & 0.12 & 0.00 & 0.00 & 0.80 \\
 \bottomrule
 \end{tabular}
 \caption{Top-5 rate of the eight most consistently important features: the
 fraction of the 25 cross-validation folds in which the feature ranked among the
 five most important by permutation importance, sorted by the sum across models.
 LR: logistic regression; LR + log: logistic regression with log-transformed
-features; RF: random forest. CRP: C-reactive protein; BM: bone mass;
-AST: aspartate aminotransferase; ECF/TBW: extracellular fluid/total body water;
-ICW: intracellular water; TBFR: total body fat ratio.}
+features; RF: random forest; EBM: explainable boosting machine. CRP: C-reactive
+protein; BM: bone mass; AST: aspartate aminotransferase; ECF/TBW: extracellular
+fluid/total body water; ICW: intracellular water; TBFR: total body fat ratio.}
 \label{tab:top5_rate}
 \end{table}
+
+The EBM confirms the features identified by the other models. CRP ranked among
+its five most important features in every fold, followed by ECF/TBW (0.88),
+vitamin D (0.80) and bone mass (0.76), whereas the body-composition features
+favoured by plain logistic regression (TBFR, ICW and gender) were never among
+its top five. The EBM additionally ranked visceral muscle area highly (top-5
+rate 0.64), which is likely due in part to its interaction with bone mass.
 
 \section{Conclusion}
 \label{sec:Conclusion}
@@ -441,7 +529,7 @@ ICW: intracellular water; TBFR: total body fat ratio.}
 
 \begin{itemize}
 \item Matteo Soldini: Data Exploration, LogRes, LogRes + Log
-\item Syed Sakibur Rahman: Validation/Evaluation, EDM
+\item Syed Sakibur Rahman: Validation/Evaluation, EBM
 \item Irtaza Bin Ashar: Data Exploration, XGBoost
 \end{itemize}
 
