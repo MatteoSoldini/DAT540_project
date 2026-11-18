@@ -108,6 +108,29 @@ The data was first split into a training set (80\%) and a held-out test set
 (20\%), stratified by gallstone status so that both sets preserve the class
 balance. The test set was not used until the final evaluation.
 
+The distribution of gallstone status also differs between the sexes
+(Table~\ref{tab:sex_distribution}). The dataset contains 162 men and 157 women.
+Among the men, 94 (58.0\%) were diagnosed with gallstone disease, compared with
+67 (42.7\%) of the women. Sex may therefore carry some information about the
+target, and its contribution to the models' predictions is assessed in the
+feature importance analysis (Section~\ref{ssec:feature_evaluation}).
+
+\begin{table}[h]
+\centering
+\caption{Gallstone status by sex.}
+\label{tab:sex_distribution}
+\begin{tabular}{lrrr}
+\hline
+Sex & Gallstones & No gallstones & Total \\
+\hline
+Male   & 94 (58.0\%) & 68 (42.0\%) & 162 \\
+Female & 67 (42.7\%) & 90 (57.3\%) & 157 \\
+\hline
+Total  & 161 & 158 & 319 \\
+\hline
+\end{tabular}
+\end{table}
+
 \subsubsection{Cleaning}
 \label{ssec:cleaning}
 
