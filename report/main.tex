@@ -123,20 +123,22 @@ and for consistency with related features in the same record.
 
 \begin{table}[h]
 \centering
+\caption{Values more than ten standard deviations from the feature mean.
+Mean and standard deviation are computed on the uncorrected data.
+AST: aspartate aminotransferase; ALT: alanine aminotransferase;
+HDL: high-density lipoprotein.}
+\label{tab:outliers}
 \begin{tabular}{llrrrr}
 \hline
 Record & Feature & Value & Mean & Std & $z$ \\
 \hline
-40  & Glucose & 575.0 & 108.69 & 44.85 & 10.40 \\
-239 & Obesity (\%) & 1954.0 & 35.85 & 109.80 & 17.47 \\
-278 & Aspartat Aminotransferaz (AST) & 195.0 & 21.68 & 16.70 & 10.38 \\
-    & Alanin Aminotransferaz (ALT) & 372.0 & 26.86 & 27.88 & 12.38 \\
-318 & High Density Lipoprotein (HDL) & 273.0 & 49.48 & 17.72 & 12.62 \\
+40  & Glucose      & 575  & 108.69 & 44.85  & 10.40 \\
+239 & Obesity (\%) & 1954 & 35.85  & 109.80 & 17.47 \\
+278 & AST          & 195  & 21.68  & 16.70  & 10.38 \\
+    & ALT          & 372  & 26.86  & 27.88  & 12.38 \\
+318 & HDL          & 273  & 49.48  & 17.72  & 12.62 \\
 \hline
 \end{tabular}
-\caption{Values more than ten standard deviations from the feature mean.
-Mean and standard deviation are computed on the uncorrected data.}
-\label{tab:outliers}
 \end{table}
 
 Record 40 belongs to a patient without diabetes mellitus but reports a glucose
@@ -159,10 +161,17 @@ coherent clinical picture of liver involvement, which can occur in
 gallstone disease when stones obstruct the bile ducts. These values were
 therefore considered plausible and retained.
 
-Record 318 reports an HDL level of 273~mg/dl. Since total cholesterol includes
-both LDL and HDL, their sum cannot exceed it. In this record, however,
-LDL + HDL $= 155 + 273 = 428$~mg/dl, exceeding the total cholesterol of
-296~mg/dl. The value is therefore inconsistent, and the record was removed.
+Record 318 reports an HDL level of 273~mg/dl. Total cholesterol is the sum of
+the cholesterol carried by LDL, HDL and VLDL, as expressed by the Friedewald
+equation~\cite{friedewald1972}:
+\begin{equation}
+\mathrm{TC} = \mathrm{LDL} + \mathrm{HDL} + \frac{\mathrm{TG}}{5},
+\end{equation}
+where the last term estimates VLDL cholesterol from the triglyceride level.
+Total cholesterol must therefore be at least as large as the sum of LDL and
+HDL. In this record, however, LDL + HDL $= 155 + 273 = 428$~mg/dl, exceeding
+the total cholesterol of 296~mg/dl. The value is therefore inconsistent, and
+the record was removed.
 
 \paragraph{Features Cross-Correlation} 
 
@@ -181,15 +190,18 @@ $|r| > 0.9$ (Table~\ref{tab:correlations}).
 \hline
 Feature A & Feature B & $|r|$ \\
 \hline
-Total Body Fat Ratio (TBFR) (\%) & Lean Mass (LM) (\%) & 0.994 \\
-Total Body Water (TBW) & Muscle Mass (MM) & 0.928 \\
-Body Mass Index (BMI) & Obesity (\%) & 0.918 \\
-Total Body Water (TBW) & Extracellular Water (ECW) & 0.904 \\
-Intracellular Water (ICW) & Muscle Mass (MM) & 0.904 \\
-Body Mass Index (BMI) & Total Fat Content (TFC) & 0.903 \\
+TBFR (\%) & LM (\%)       & 0.994 \\
+TBW       & MM            & 0.928 \\
+BMI       & Obesity (\%)  & 0.918 \\
+TBW       & ECW           & 0.904 \\
+ICW       & MM            & 0.904 \\
+BMI       & TFC           & 0.903 \\
 \hline
 \end{tabular}
-\caption{Feature pairs with absolute Pearson correlation above 0.9.}
+\caption{Feature pairs with absolute Pearson correlation above 0.9.
+TBFR: total body fat ratio; LM: lean mass; TBW: total body water;
+MM: muscle mass; BMI: body mass index; ECW: extracellular water;
+ICW: intracellular water; TFC: total fat content.}
 \label{tab:correlations}
 \end{table}
 
