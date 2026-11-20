@@ -459,7 +459,123 @@ but does not eliminate, this effect.
 \section{Results}
 \label{sec:results}
 
-\todo[inline]{Completely missing and not updated}
+\subsection{Model}
+\label{ssec:results_model}
+
+Table~\ref{tab:cv_results} summarizes the performance of the four tuned models.
+Each model was first validated with repeated stratified 5-fold cross-validation
+on the training set (5 repeats, 25 folds), and then trained on the full training
+set and evaluated once on the held-out test set of 64 patients.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\toprule
+Model & CV ROC AUC & Test ROC AUC & Test accuracy \\
+\midrule
+Logistic regression        & $0.864 \pm 0.041$ & 0.854 & 0.781 \\
+Logistic regression + log  & $0.890 \pm 0.045$ & 0.873 & 0.812 \\
+XGBoost                    & $0.837 \pm 0.048$ & 0.877 & 0.828 \\
+EBM                        & $0.887 \pm 0.046$ & 0.892 & 0.859 \\
+\bottomrule
+\end{tabular}
+\caption{Performance of the tuned models. CV ROC AUC: mean $\pm$ standard
+deviation over the 25 folds of repeated stratified 5-fold cross-validation on
+the training set. Test ROC AUC and accuracy: a single evaluation on the 64
+held-out test patients.}
+\label{tab:cv_results}
+\end{table}
+
+In cross-validation, logistic regression with log-transformed features
+($0.890 \pm 0.045$) and the EBM ($0.887 \pm 0.046$) performed best. The
+difference between them is far smaller than the variation across folds, so the
+two models perform equally well. Both clearly outperformed plain logistic
+regression ($0.864$), which confirms that the log transformation of the skewed
+features improves the linear model. XGBoost had the lowest cross-validated AUC
+($0.837$), despite being the most flexible model; with only 253 training
+patients, its additional flexibility does not pay off.
+
+On the test set, the EBM achieved the highest ROC AUC (0.892) and accuracy
+(0.859, i.e.\ 55 of 64 patients classified correctly), followed by XGBoost
+(53 correct), logistic regression with log-transformed features (52) and plain
+logistic regression (50). These differences correspond to only a few patients:
+one patient changes the accuracy by about 1.6 percentage points. The test set
+is also small enough to give noisy estimates, as XGBoost shows: its test AUC
+(0.877) is much higher than its cross-validated AUC (0.837). We therefore
+consider the cross-validated results the more reliable basis for comparing the
+models, and the test results as a confirmation that the models generalize to
+unseen patients.
+
+Overall, the EBM matches the best linear model while being able to capture
+non-linear effects. The tuned EBM used five pairwise interaction terms; three
+of them paired CRP with another feature (protein content, alkaline phosphatase
+and creatinine), and the other two paired ECF/TBW with vitamin D, and bone mass
+with visceral muscle area. Given the small training set, these interactions
+should be regarded as indications rather than established effects.
+
+\subsection{Relevant clinical features}
+\label{ssec:results_features}
+
+Table~\ref{tab:top5_rate} shows, for each model, how often each feature ranked
+among the five most important features by permutation importance across the
+25 cross-validation folds.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lccccc}
+\toprule
+Feature & LR & LR + log & XGB & EBM & Sum \\
+\midrule
+CRP            & 0.56 & 1.00 & 1.00 & 1.00 & 3.56 \\
+Vitamin D      & 0.12 & 0.92 & 0.96 & 0.80 & 2.80 \\
+BM             & 1.00 & 0.76 & 0.24 & 0.76 & 2.76 \\
+ECF/TBW        & 0.08 & 0.72 & 0.80 & 0.88 & 2.48 \\
+AST            & 0.36 & 0.56 & 0.52 & 0.12 & 1.56 \\
+ICW            & 0.68 & 0.24 & 0.04 & 0.00 & 0.96 \\
+TBFR (\%)      & 0.80 & 0.00 & 0.16 & 0.00 & 0.96 \\
+VMA            & 0.00 & 0.00 & 0.20 & 0.64 & 0.84 \\
+Hyperlipidemia & 0.00 & 0.32 & 0.00 & 0.44 & 0.76 \\
+Gender         & 0.68 & 0.00 & 0.00 & 0.00 & 0.68 \\
+\bottomrule
+\end{tabular}
+\caption{Top-5 rate of the ten most consistently important features: the
+fraction of the 25 cross-validation folds in which the feature ranked among the
+five most important by permutation importance, sorted by the sum across models
+(maximum 4). LR: logistic regression; LR + log: logistic regression with
+log-transformed features; XGB: XGBoost; EBM: explainable boosting machine.
+CRP: C-reactive protein; BM: bone mass; ECF/TBW: extracellular fluid/total body
+water; AST: aspartate aminotransferase; ICW: intracellular water; TBFR: total
+body fat ratio; VMA: visceral muscle area.}
+\label{tab:top5_rate}
+\end{table}
+
+Four features were consistently important across models: CRP, vitamin D, bone
+mass and the ECF/TBW ratio. CRP was the strongest predictor: it ranked among
+the five most important features in every fold for logistic regression with
+log-transformed features, XGBoost and the EBM. For logistic regression with
+log-transformed features, its mean importance (a drop in ROC AUC of 0.141) was
+more than twice that of the next feature, vitamin D (0.056). Vitamin D, bone
+mass and ECF/TBW each ranked among the top five in most folds for at least
+three of the four models. Since a linear model, a gradient-boosted tree
+ensemble and an additive model all identify these features, their importance is
+unlikely to be an artefact of a single modelling approach.
+
+Plain logistic regression was the exception. It relied mainly on body
+composition features (bone mass, total body fat ratio, intracellular water) and
+gender, and gave much less weight to CRP and vitamin D. We attribute this to
+the strong right skew of CRP (Table~\ref{tab:skewness}): most patients have low
+values and a few have very high ones, which a linear model on the raw values
+cannot use well. After the log transformation, CRP became the most important
+feature of the linear model as well, in agreement with the two tree-based
+models. The EBM additionally ranked visceral muscle area highly (top-5 rate
+0.64), which is likely due in part to its interaction with bone mass: shuffling
+a feature also breaks every interaction term that contains it.
+
+These results describe which features the models use for prediction, not
+causal risk factors. CRP, for example, is a marker of inflammation, and an
+elevated value may partly be a consequence of gallstone disease rather than a
+cause of it.
 
 \subsection{Model}
 
