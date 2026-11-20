@@ -13,6 +13,7 @@
 \usepackage{tabularx}
 \usepackage{array}
 \usepackage{multirow}
+\usepackage{todonotes}
 
 \emergencystretch=2em
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
@@ -42,15 +43,28 @@ or Math in Paper Title or Abstract.
 \section{Introduction}
 \label{sec:introduction}
 
-We use the Gallstone dataset~\cite{gallstone_1150}.
+Gallstone disease is a common gastrointestinal condition, usually diagnosed
+with imaging such as ultrasonography or computed tomography. These methods are
+reliable but costly and not always available~\cite{esen2024gallstone}. A model
+that predicts gallstones from routine data, such as body composition
+measurements and blood tests, could help select patients for further
+examination. In a clinical setting, however, a prediction is only useful if
+it can be explained: clinicians need to know which patient characteristics
+drive it.
 
-The objective of this project is therefore twofold:
+We use the Gallstone dataset~\cite{gallstone_1150}, introduced by Esen et
+al.~\cite{esen2024gallstone}, which combines demographic, bioimpedance and
+laboratory data for 319 patients. The objective of this project is twofold:
 \begin{enumerate}
-\item Develop a machine-learning model that can distinguish patients with and without gallstone disease.
-\item Investigate which clinical characteristics contribute most to the model's predictions.
+\item Develop a machine learning model that can distinguish patients with and
+  without gallstone disease.
+\item Investigate which clinical characteristics contribute most to the
+  model's predictions.
 \end{enumerate}
-
-The code and notebooks used in this study are publicly available at
+To this end, we compare two interpretable models, logistic regression and an
+Explainable Boosting Machine, with XGBoost, and measure the contribution of
+each feature with permutation feature importance across cross-validation
+folds. The code and notebooks are publicly available at
 \url{https://github.com/MatteoSoldini/DAT540_project}.
 
 \section{Methods}
@@ -66,7 +80,7 @@ The Gallstone dataset~\cite{gallstone_1150} was collected at the Internal
 Medicine Outpatient Clinic of Ankara VM Medical Park Hospital between June 2022
 and June 2023. It contains 319 records, one per patient, and 39 columns: the binary target
 variable \emph{Gallstone Status} and 38 features. In the original coding, the
-target takes the value 0 for patients with gallstones and 1 for patients
+target takes the value 1 for patients with gallstones and 0 for patients
 without.
 
 The features fall into three groups:
@@ -86,26 +100,50 @@ together with the total number of comorbid conditions. Hepatic fat
 accumulation is an ordinal grade from 0 (none) to 4 (very severe). All other
 features are numerical.
 
-The classes are nearly balanced: 161 patients (50.5\%) were diagnosed with
-gallstone disease and 158 (49.5\%) were not
-(Table~\ref{tab:class_balance}). The dataset contains no missing values and no
-duplicate records.
+The classes are nearly balanced: 158 patients (49.5\%) were diagnosed with
+gallstone disease and 161 (50.5\%) were not (Table~\ref{tab:class_balance}). No resampling of the dataset is needed.
+
 
 \begin{table}[h]
 \centering
+\caption{Class distribution of the target variable.}
+\label{tab:class_balance}
 \begin{tabular}{lrr}
 \hline
 Gallstone Status & Patients & Share \\
 \hline
-Present (0) & 161 & 50.5\% \\
-Absent (1)  & 158 & 49.5\% \\
+Absent (0)  & 161 & 50.5\% \\
+Present (1) & 158 & 49.5\% \\
 \hline
 Total       & 319 & 100\% \\
 \hline
 \end{tabular}
-\caption{Class distribution of the target variable.}
-\label{tab:class_balance}
 \end{table}
+
+The distribution of gallstone status also differs between the sexes
+(Table~\ref{tab:sex_distribution}). The dataset contains 162 men and 157 women.
+Among the men, 94 (58.0\%) were diagnosed with gallstone disease, compared with
+67 (42.7\%) of the women. Sex may therefore carry some information about the
+target, and its contribution to the models' predictions is assessed in the
+feature importance analysis (Section~\ref{ssec:feature_evaluation}).
+
+\begin{table}[h]
+\centering
+\caption{Gallstone status by sex.}
+\label{tab:sex_distribution}
+\begin{tabular}{lrrr}
+\hline
+Sex & No gallstones & Gallstones & Total \\
+\hline
+Male   & 94 (58.0\%) & 68 (42.0\%) & 162 \\
+Female & 67 (42.7\%) & 90 (57.3\%) & 157 \\
+\hline
+Total  & 161 & 158 & 319 \\
+\hline
+\end{tabular}
+\end{table}
+
+The dataset contains no missing values and no duplicate records.
 
 The data was first split into a training set (80\%) and a held-out test set
 (20\%), stratified by gallstone status so that both sets preserve the class
@@ -189,6 +227,10 @@ $|r| > 0.9$ (Table~\ref{tab:correlations}).
 
 \begin{table}[h]
 \centering
+\caption{Feature pairs with absolute Pearson correlation above 0.9.
+TBFR: total body fat ratio; LM: lean mass; TBW: total body water;
+MM: muscle mass; BMI: body mass index; ECW: extracellular water;
+ICW: intracellular water; TFC: total fat content.}
 \begin{tabular}{llr}
 \hline
 Feature A & Feature B & $|r|$ \\
@@ -201,10 +243,6 @@ ICW       & MM            & 0.904 \\
 BMI       & TFC           & 0.903 \\
 \hline
 \end{tabular}
-\caption{Feature pairs with absolute Pearson correlation above 0.9.
-TBFR: total body fat ratio; LM: lean mass; TBW: total body water;
-MM: muscle mass; BMI: body mass index; ECW: extracellular water;
-ICW: intracellular water; TFC: total fat content.}
 \label{tab:correlations}
 \end{table}
 
@@ -236,10 +274,10 @@ The penalty keeps the weights small, so the model does not fit noise. $C$ is reg
 It is kept small to avoid overfitting, and it is selected by cross-validation (Section~\ref{ssec:tuning}).
 
 \paragraph{Logistic regression with log transformation.}
+\todo[inline]{This is garbage}
 Our data has some extremely right-skewed features:  most patients have small values and a few have very large ones.
 Logistic regression fits poorly for skewed features. In medical practice patients can have extremely varying values~\cite{bland1996transforming,feng2014log}.
-These skewed values add more weight than they should. The more skewed they are the bad logistic 
-regression performs. Seven features had a skewness above 1
+These skewed values add more weight than they should. The more skewed they are the bad logistic regression performs. Seven features had a skewness above 1
 (Table~\ref{tab:skewness}). One way is to compile the skews as their logarithmic counterpart. In this way We reduce skewness and turns multiplicative
 effects into additive ones, so a weight describes the effect of a relative
 change, such as a doubling of CRP~\cite{mlm_logarithms}. Adding 1 keeps zero
@@ -248,6 +286,7 @@ regression.
 
 \begin{table}[h]
 \centering
+\caption{Features with skewness above 1 on the training set, before and after $\log(1 + x)$.}
 \begin{tabular}{lrr}
 \toprule
 Feature & Skewness & After log \\
@@ -261,14 +300,13 @@ Visceral Fat Area (VFA)          & 1.24 & $-0.73$ \\
 Intracellular Water (ICW)        & 1.09 &  0.18 \\
 \bottomrule
 \end{tabular}
-\caption{Features with skewness above 1 on the training set, before and after
-$\log(1 + x)$.}
 \label{tab:skewness}
 \end{table}
 
 The skewness has been reduced considerably. For example, the skewness of CRP dropped from 5.16 to 1.63, and the skewness of triglycerides changed from 2.83 to -0.82, which is now left-skewed.
 
 \paragraph{Explainable Boosting Machine.}
+\todo[inline]{I would make this paragraph longer. What are decision trees? What curve are you talking about?}
 An EBM adds up one small curve per feature, plus a few curves for pairs of
 features~\cite{lou2013accurate}:
 \begin{equation}
@@ -283,6 +321,7 @@ as logistic regression, but it can also capture non-linear effects. Yes/no
 features were treated as categorical and all others as continuous.
 
 \paragraph{XGBoost.}
+\todo[inline]{This is clearly not enough. What are decision tree? At least cite them. Why it can capture non-linear effects? Why it is hard to interpret?}
 XGBoost builds many small decision trees one after another. Each new tree
 tries to fix the mistakes of the trees before it~\cite{friedman2001greedy}.
 It also limits the size of the trees and the contribution of each tree to
@@ -298,55 +337,36 @@ set~\cite{kohavi1995cv}. For each combination, the model was trained on four
 folds and evaluated on the fifth, and the results were averaged over the five
 folds. All models used the same folds. We selected the combination with the
 highest mean ROC AUC (Section~\ref{ssec:metric}). Accuracy and F1 were also
-recorded. Standardization and the log transformation were part of the model
+recorded.
+\todo[inline]{Watch out, log transformation is not present in all models (ex. LogRes). I would even remove this section actually}
+Standardization and the log transformation were part of the model
 pipeline, so they were fitted only on the training folds. This avoids data
 leakage.
-
 
 \begin{table}[htbp]
 \centering
 \small
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.25}
-
+\caption{Hyperparameters tested and values selected by cross-validated ROC AUC.
+For logistic regression (LR), the selected $C$ is given without and with the
+log transformation.}
+\label{tab:grids}
+\setlength{\tabcolsep}{4pt}
 \begin{tabularx}{\linewidth}{@{}l X r@{}}
 \toprule
-\textbf{Model} & \textbf{Hyperparameter (values tested)} & \textbf{Selected} \\
+Model & Hyperparameter (values tested) & Selected \\
 \midrule
-
-\multirow{2}{*}{Logistic regression}
-& $C \in \{10^{-3}, 10^{-2}, \ldots, 10^{3}\}$
-& $10$ / $1$ \\
-
+LR      & $C \in \{10^{-3}, 10^{-2}, \ldots, 10^{3}\}$ & $10$ / $0.1$ \\
 \midrule
-
-\multirow{4}{*}{EBM}
-& Learning rate: $\{0.01, 0.05\}$
-& $0.05$ \\
-& Interactions: $\{0, 5\}$
-& $5$ \\
-& Minimum samples per leaf: $\{2, 8\}$
-& $8$ \\
-& Maximum bins: $\{64, 256\}$
-& $64$ \\
-
+EBM     & Learning rate $\in \{0.01, 0.05\}$           & $0.05$ \\
+        & Interactions $\in \{0, 5\}$                  & $5$ \\
+        & Min.\ samples per leaf $\in \{2, 8\}$        & $8$ \\
+        & Max.\ bins $\in \{64, 256\}$                 & $64$ \\
 \midrule
-
-\multirow{3}{*}{XGBoost}
-& Maximum depth: $\{3, 4\}$
-& $4$ \\
-& Learning rate: $\{0.003, 0.01\}$
-& $0.01$ \\
-& Number of trees: $\{30, 100, 300, 1000\}$
-& $1000$ \\
-
+XGBoost & Max.\ depth $\in \{3, 4\}$                   & $4$ \\
+        & Learning rate $\in \{0.003, 0.01\}$          & $0.01$ \\
+        & Trees $\in \{30, 100, 300, 1000\}$           & $1000$ \\
 \bottomrule
 \end{tabularx}
-
-\caption{Hyperparameters tested and values selected by cross-validated ROC AUC.
-For logistic regression, selected $C$ values are reported without and with
-the log transformation, respectively.}
-\label{tab:grids}
 \end{table}
 
 \subsection{Performance Metric}
@@ -380,11 +400,11 @@ We also report accuracy and F1 score as secondary metrics.
 To identify the clinical characteristics that contribute most to the models'
 predictions, we used permutation feature importance (PFI). PFI is a
 model-agnostic technique: it treats the trained model as a black box, so the
-same procedure applies to logistic regression and random forests alike. It
+same procedure applies to logistic regression and random forest models alike. It
 measures how much the model's performance drops when the information in a
 feature is destroyed~\cite{molnar2025}.
 
-The idea is simple. The values of one feature are randomly shuffled across
+The values of one feature are randomly shuffled across
 patients, which breaks the relationship between that feature and the outcome
 while leaving its distribution unchanged. If the model relied on the feature,
 its predictions become worse; if the model ignored it, its performance stays
