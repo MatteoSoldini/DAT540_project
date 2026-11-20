@@ -1,0 +1,83 @@
+\relax 
+\citation{gallstone_1150}
+\citation{gallstone_1150}
+\citation{freckmann2007glucose}
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{}\protected@file@percent }
+\newlabel{sec:introduction}{{I}{1}{}{section.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {II}Methods}{1}{}\protected@file@percent }
+\newlabel{sec:methods}{{II}{1}{}{section.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-A}}Dataset}{1}{}\protected@file@percent }
+\newlabel{ssec:dataset}{{\mbox  {II-A}}{1}{}{subsection.2.1}{}}
+\newlabel{ssec:overview}{{\mbox  {II-A}1}{1}{}{subsubsection.2.1.1}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {II-A}1}Overview}{1}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Class distribution of the target variable.}}{1}{}\protected@file@percent }
+\newlabel{tab:class_balance}{{I}{1}{}{table.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Gallstone status by sex.}}{1}{}\protected@file@percent }
+\newlabel{tab:sex_distribution}{{II}{1}{}{table.2}{}}
+\newlabel{ssec:cleaning}{{\mbox  {II-A}2}{1}{}{subsubsection.2.1.2}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {II-A}2}Cleaning}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {II-A}2a}Implausible Values}{1}{}\protected@file@percent }
+\citation{friedewald1972}
+\citation{pedregosa2011sklearn}
+\citation{nori2019interpretml}
+\citation{chen2016xgboost}
+\citation{hosmer2013applied}
+\citation{hoerl1970ridge}
+\citation{bland1996transforming,feng2014log}
+\citation{mlm_logarithms}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Values more than ten standard deviations from the feature mean. Mean and standard deviation are computed on the uncorrected data. AST: aspartate aminotransferase; ALT: alanine aminotransferase; HDL: high-density lipoprotein.}}{2}{}\protected@file@percent }
+\newlabel{tab:outliers}{{III}{2}{}{table.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {II-A}2b}Features Cross-Correlation}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-B}}Models}{2}{}\protected@file@percent }
+\newlabel{ssec:models}{{\mbox  {II-B}}{2}{}{subsection.2.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Feature pairs with absolute Pearson correlation above 0.9. TBFR: total body fat ratio; LM: lean mass; TBW: total body water; MM: muscle mass; BMI: body mass index; ECW: extracellular water; ICW: intracellular water; TFC: total fat content.}}{2}{}\protected@file@percent }
+\newlabel{tab:correlations}{{IV}{2}{}{table.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {II-B}0a}Logistic regression.}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {II-B}0b}Logistic regression with log transformation.}{2}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Features with skewness above 1 on the training set, before and after $\log (1 + x)$.}}{2}{}\protected@file@percent }
+\newlabel{tab:skewness}{{V}{2}{}{table.5}{}}
+\citation{lou2013accurate}
+\citation{lou2013accurate,nori2019interpretml}
+\citation{friedman2001greedy}
+\citation{chen2016xgboost}
+\citation{kohavi1995cv}
+\citation{fawcett2006roc,google_rocauc}
+\citation{hanley1982meaning}
+\citation{google_rocauc}
+\citation{google_rocauc}
+\citation{molnar2025}
+\citation{molnar2025}
+\citation{molnar2025}
+\citation{molnar2025}
+\citation{molnar2025}
+\citation{molnar2025}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {II-B}0c}Explainable Boosting Machine.}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {\mbox  {II-B}0d}XGBoost.}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-C}}Hyperparameter Selection}{3}{}\protected@file@percent }
+\newlabel{ssec:tuning}{{\mbox  {II-C}}{3}{}{subsection.2.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {VI}{\ignorespaces Hyperparameters tested and the values selected by cross-validated ROC AUC. For logistic regression, the selected $C$ is given without and with the log transformation.}}{3}{}\protected@file@percent }
+\newlabel{tab:grids}{{VI}{3}{}{table.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-D}}Performance Metric}{3}{}\protected@file@percent }
+\newlabel{ssec:metric}{{\mbox  {II-D}}{3}{}{subsection.2.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-E}}Feature evaluation}{3}{}\protected@file@percent }
+\newlabel{ssec:feature_evaluation}{{\mbox  {II-E}}{3}{}{subsection.2.5}{}}
+\bibstyle{plainnat}
+\bibdata{references}
+\bibcite{gallstone_1150}{{1}{2024}{{Esen et~al.}}{{Esen, Arslan, Akt{\"u}rk, G{\"u}l{\c {s}}en, K{\"u}ltekin, and {\"O}zdemir}}}
+\bibcite{freckmann2007glucose}{{2}{2007}{{Freckmann et~al.}}{{Freckmann, Hagenlocher, Baumstark, Jendrike, Gillen, R{\"o}ssner, and Haug}}}
+\bibcite{google_rocauc}{{3}{2026}{{Google for Developers}}{{}}}
+\bibcite{mlm_logarithms}{{4}{}{{Machine Learning Mastery}}{{}}}
+\bibcite{molnar2025}{{5}{2025}{{Molnar}}{{}}}
+\@writefile{toc}{\contentsline {section}{\numberline {III}Results}{4}{}\protected@file@percent }
+\newlabel{sec:results}{{III}{4}{}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-A}}Model}{4}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {VII}{\ignorespaces Cross-validated ROC AUC on the training set (repeated stratified 5-fold cross-validation, 5 repeats). Values are mean $\pm $ standard deviation across the 25 folds.}}{4}{}\protected@file@percent }
+\newlabel{tab:cv_results}{{VII}{4}{}{table.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-B}}Relevant clinical features}{4}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {VIII}{\ignorespaces Top-5 rate of the eight most consistently important features: the fraction of the 25 cross-validation folds in which the feature ranked among the five most important by permutation importance, sorted by the sum across models. LR: logistic regression; LR + log: logistic regression with log-transformed features; RF: random forest. CRP: C-reactive protein; BM: bone mass; AST: aspartate aminotransferase; ECF/TBW: extracellular fluid/total body water; ICW: intracellular water; TBFR: total body fat ratio.}}{4}{}\protected@file@percent }
+\newlabel{tab:top5_rate}{{VIII}{4}{}{table.8}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Conclusion}{4}{}\protected@file@percent }
+\newlabel{sec:Conclusion}{{IV}{4}{}{section.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {V}Member contributions}{4}{}\protected@file@percent }
+\newlabel{sec:constributions}{{V}{4}{}{section.5}{}}
+\gdef \@abspage@last{4}
