@@ -319,8 +319,11 @@ weights~\cite{hoerl1970ridge}:
 \min_{\mathbf{w}, b} \; \frac{1}{2}\lVert \mathbf{w} \rVert^2
   + C \sum_{i=1}^{n} \ell\left(y_i, \sigma(\mathbf{w}^\top \mathbf{x}_i + b)\right).
 \end{equation}
-The penalty keeps the weights small, so the model does not fit noise. $C$ is regularization parameter.
-It is kept small to avoid overfitting, and it is selected by cross-validation (Section~\ref{ssec:tuning}).
+The penalty keeps the weights small, so the model does not fit noise. 
+The parameter $C$ controls the strength of the regularization: small values
+penalize large weights strongly, while large values let the model fit the
+training data more closely. It was selected by cross-validation
+(Section~\ref{ssec:tuning}).
 
 \paragraph{Logistic regression with log transformation.}
 Logistic regression assumes that each feature changes the log-odds linearly:
@@ -338,27 +341,78 @@ transformation substantially reduced the skewness, for example from 5.39 to
 1.68 for CRP (Table~\ref{tab:skewness}). Apart from this change, the rest of the model is identical to logistic regression.
 
 \paragraph{Explainable Boosting Machine.}
-\todo[inline]{I would make this paragraph longer. What are decision trees? What curve are you talking about?}
-An EBM adds up one small curve per feature, plus a few curves for pairs of
-features~\cite{lou2013accurate}:
+The EBM is built from decision trees~\cite{breiman1984cart}. A decision tree predicts by asking a
+sequence of yes/no questions about the feature values, for example
+``Is CRP above 5?'' and then ``Is vitamin D below 20?''. Each answer leads to
+the next question, until the patient reaches a leaf that gives the prediction.
+A small tree that only asks questions about one feature therefore splits that
+feature into a few intervals and assigns one value to each, which gives a step
+function of the feature.
+
+An EBM adds up one such function, or curve, per feature, plus a few curves for
+pairs of features~\cite{lou2013accurate}:
 \begin{equation}
 g\left(\mathbb{E}[y]\right) = \beta_0 + \sum_{j} f_j(x_j)
   + \sum_{(j,k)} f_{jk}(x_j, x_k),
 \end{equation}
-where $g$ is the logit function. Each curve is built from many small decision
-trees, trained one feature at a time with a small learning
-rate~\cite{lou2013accurate,nori2019interpretml}. Since the prediction is a sum,
-each curve can be plotted and inspected. This makes the EBM as easy to interpret
-as logistic regression, but it can also capture non-linear effects. Yes/no
-features were treated as categorical and all others as continuous.
+where $g$ is the logit function and $\beta_0$ is an intercept. Each $f_j$ is
+called a \emph{shape function}: it describes how the value of feature $j$
+changes the predicted log-odds, for example how the prediction changes as CRP
+goes from low to high. Each $f_{jk}$ describes the joint effect of a pair of
+features that cannot be captured by their separate curves. Compared with
+logistic regression, where each feature has the fixed linear effect $w_j x_j$,
+the EBM learns the shape of each effect from the data, so it can represent
+thresholds and other non-linear effects.
+
+The shape functions are learned with boosting~\cite{lou2013accurate,
+nori2019interpretml}. The model cycles through the features one at a time; for
+each feature, it fits a small tree on that feature alone to the errors that
+the current model still makes, and adds it to that feature's curve, scaled by
+a small learning rate. After many rounds, all the small trees for a feature add
+up to its shape function. Pairs of features whose joint effect improves the
+fit the most are then added as interaction terms and trained in the same way.
+Finally, the procedure is repeated on several random subsamples of the
+training data and the results are averaged, which makes the curves more stable
+and gives an estimate of their uncertainty~\cite{nori2019interpretml}.
+
+Since the prediction is a sum of one curve per feature or pair, each curve can
+be plotted and inspected, and the contribution of every feature to an
+individual prediction can be read off exactly. This makes the EBM as easy to
+interpret as logistic regression, while it can also capture non-linear effects
+and interactions. Continuous features are split into a fixed number of bins
+before training, so the EBM does not need standardization or the log
+transformation. Yes/no features were treated as categorical and all others as
+continuous.
 
 \paragraph{XGBoost.}
-\todo[inline]{This is clearly not enough. What are decision tree? At least cite them. Why it can capture non-linear effects? Why it is hard to interpret?}
-XGBoost builds many small decision trees one after another. Each new tree
-tries to fix the mistakes of the trees before it~\cite{friedman2001greedy}.
-It also limits the size of the trees and the contribution of each tree to
-reduce overfitting~\cite{chen2016xgboost}. It can capture non-linear effects and
-interactions between features, but it is hard to interpret.
+XGBoost is also built from decision trees~\cite{breiman1984cart}, as described
+above for the EBM, but its trees are not restricted to a single feature. Each
+tree can ask questions about different features along the same path, for
+example ``Is CRP above 5?'' followed by ``Is the patient female?''. A tree with
+several levels therefore divides the patients into groups defined by
+combinations of feature values, and assigns each group its own prediction.
+This is why tree ensembles capture non-linear effects, such as a risk that
+only increases above a threshold, and interactions between features, without
+these having to be specified in advance.
+
+The trees are combined with gradient boosting~\cite{friedman2001greedy}. The
+model starts from a constant prediction and adds trees one after another; each
+new tree is fitted to the errors that the current ensemble still makes, and
+its output is added to the prediction, scaled by a small learning rate. After
+many rounds, the sum of all trees gives the predicted log-odds. XGBoost adds
+several mechanisms that limit overfitting: a maximum tree depth, the learning
+rate, which keeps each tree's contribution small, and a penalty on the values
+in the leaves~\cite{chen2016xgboost}. The depth, the learning rate and the
+number of trees were tuned by cross-validation (Section~\ref{ssec:tuning}).
+Since trees only compare feature values with thresholds, they are not affected
+by the scale or skewness of the features, so no standardization or log
+transformation was applied.
+
+The price of this flexibility is interpretability. Unlike in the EBM, the prediction
+cannot be written as a sum of one curve per feature, so the effect of a single
+feature cannot be read off directly. XGBoost is therefore a black-box model:
+its behavior can only be explained indirectly, for example with permutation
+importance (Section~\ref{ssec:feature_evaluation}).
 
 \subsection{Hyperparameter Selection}
 \label{ssec:tuning}
@@ -370,10 +424,6 @@ folds and evaluated on the fifth, and the results were averaged over the five
 folds. All models used the same folds. We selected the combination with the
 highest mean ROC AUC (Section~\ref{ssec:metric}). Accuracy and F1 were also
 recorded.
-\todo[inline]{Watch out, log transformation is not present in all models (ex. LogRes). I would even remove this section actually}
-Standardization and the log transformation were part of the model
-pipeline, so they were fitted only on the training folds. This avoids data
-leakage.
 
 \begin{table}[htbp]
 \centering
