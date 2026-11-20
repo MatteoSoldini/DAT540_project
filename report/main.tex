@@ -14,6 +14,7 @@
 \usepackage{array}
 \usepackage{multirow}
 \usepackage{todonotes}
+\usepackage{float}
 
 \emergencystretch=2em
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
@@ -35,9 +36,7 @@
 \maketitle
 
 \begin{abstract}
-This document is a model and instructions for \LaTeX.
-This and the IEEEtran.cls file define the components of your paper [title, text, heads, etc.]. *CRITICAL: Do Not Use Symbols, Special Characters, Footnotes, 
-or Math in Paper Title or Abstract.
+TODO once Results and Conclusions are finished
 \end{abstract}
 
 \section{Introduction}
@@ -442,10 +441,15 @@ but does not eliminate, this effect.
 \section{Results}
 \label{sec:results}
 
+\todo[inline]{Completely missing and not updated}
+
 \subsection{Model}
 
 \begin{table}[h]
 \centering
+\caption{Cross-validated ROC AUC on the training set (repeated stratified
+5-fold cross-validation, 5 repeats). Values are mean $\pm$ standard deviation
+across the 25 folds.}
 \begin{tabular}{lcc}
 \toprule
 Model & CV ROC AUC & Test ROC AUC \\
@@ -455,9 +459,6 @@ logreg + log & $0.889 \pm 0.035$ & 0.897 \\
 random forest & $0.849 \pm 0.058$ & 0.861 \\
 \bottomrule
 \end{tabular}
-\caption{Cross-validated ROC AUC on the training set (repeated stratified
-5-fold cross-validation, 5 repeats). Values are mean $\pm$ standard deviation
-across the 25 folds.}
 \label{tab:cv_results}
 \end{table}
 
@@ -465,6 +466,13 @@ across the 25 folds.}
 
 \begin{table}[h]
 \centering
+\caption{Top-5 rate of the eight most consistently important features: the
+fraction of the 25 cross-validation folds in which the feature ranked among the
+five most important by permutation importance, sorted by the sum across models.
+LR: logistic regression; LR + log: logistic regression with log-transformed
+features; RF: random forest. CRP: C-reactive protein; BM: bone mass;
+AST: aspartate aminotransferase; ECF/TBW: extracellular fluid/total body water;
+ICW: intracellular water; TBFR: total body fat ratio.}
 \small
 \begin{tabular}{lcccc}
 \toprule
@@ -480,27 +488,34 @@ TBFR (\%)  & 0.80 & 0.00 & 0.04 & 0.84 \\
 Gender     & 0.68 & 0.12 & 0.00 & 0.80 \\
 \bottomrule
 \end{tabular}
-\caption{Top-5 rate of the eight most consistently important features: the
-fraction of the 25 cross-validation folds in which the feature ranked among the
-five most important by permutation importance, sorted by the sum across models.
-LR: logistic regression; LR + log: logistic regression with log-transformed
-features; RF: random forest. CRP: C-reactive protein; BM: bone mass;
-AST: aspartate aminotransferase; ECF/TBW: extracellular fluid/total body water;
-ICW: intracellular water; TBFR: total body fat ratio.}
 \label{tab:top5_rate}
 \end{table}
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-\section{Member contributions}
-\label{sec:constributions}
+\todo[inline]{Missing}
 
-\begin{itemize}
-\item Matteo Soldini: Data Exploration, LogRes, LogRes + Log
-\item Syed Sakibur Rahman: Validation/Evaluation, EDM
-\item Irtaza Bin Ashar: Data Exploration, XGBoost
-\end{itemize}
+\section*{Member Contributions}
+\label{sec:contributions}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Contributions of each group member.}
+\label{tab:contributions}
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+Member & Contribution \\
+\midrule
+Matteo Soldini      & Data exploration; logistic regression with and
+                      without log transformation \\
+Syed Sakibur Rahman & Validation and evaluation; Explainable Boosting
+                      Machine (EBM) \\
+Irtaza Bin Ashar    & Data exploration; XGBoost \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \bibliographystyle{plainnat}
 \bibliography{references}
