@@ -1,7 +1,6 @@
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
 % The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
-\usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{graphicx}
@@ -11,7 +10,11 @@
 \usepackage{url}
 \usepackage{booktabs}
 \usepackage{makecell}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
 
+\emergencystretch=2em
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -107,29 +110,6 @@ Total       & 319 & 100\% \\
 The data was first split into a training set (80\%) and a held-out test set
 (20\%), stratified by gallstone status so that both sets preserve the class
 balance. The test set was not used until the final evaluation.
-
-The distribution of gallstone status also differs between the sexes
-(Table~\ref{tab:sex_distribution}). The dataset contains 162 men and 157 women.
-Among the men, 94 (58.0\%) were diagnosed with gallstone disease, compared with
-67 (42.7\%) of the women. Sex may therefore carry some information about the
-target, and its contribution to the models' predictions is assessed in the
-feature importance analysis (Section~\ref{ssec:feature_evaluation}).
-
-\begin{table}[h]
-\centering
-\caption{Gallstone status by sex.}
-\label{tab:sex_distribution}
-\begin{tabular}{lrrr}
-\hline
-Sex & Gallstones & No gallstones & Total \\
-\hline
-Male   & 94 (58.0\%) & 68 (42.0\%) & 162 \\
-Female & 67 (42.7\%) & 90 (57.3\%) & 157 \\
-\hline
-Total  & 161 & 158 & 319 \\
-\hline
-\end{tabular}
-\end{table}
 
 \subsubsection{Cleaning}
 \label{ssec:cleaning}
@@ -322,28 +302,50 @@ recorded. Standardization and the log transformation were part of the model
 pipeline, so they were fitted only on the training folds. This avoids data
 leakage.
 
-\begin{table}[h]
+
+\begin{table}[htbp]
 \centering
-\begin{tabular}{llr}
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.25}
+
+\begin{tabularx}{\linewidth}{@{}l X r@{}}
 \toprule
-Model & Hyperparameter (values tested) & Selected \\
+\textbf{Model} & \textbf{Hyperparameter (values tested)} & \textbf{Selected} \\
 \midrule
-Logistic regression (both variants)
-  & $C \in \{10^{-3}, 10^{-2}, \dots, 10^{3}\}$ & $C = 10$ / $C = 1$ \\
+
+\multirow{2}{*}{Logistic regression}
+& $C \in \{10^{-3}, 10^{-2}, \ldots, 10^{3}\}$
+& $10$ / $1$ \\
+
 \midrule
-EBM & learning rate $\in \{0.01, 0.05\}$ & \dots \\
-    & interactions $\in \{0, 5\}$ & \dots \\
-    & min.\ samples per leaf $\in \{2, 8\}$ & \dots \\
-    & max.\ bins $\in \{64, 256\}$ & \dots \\
+
+\multirow{4}{*}{EBM}
+& Learning rate: $\{0.01, 0.05\}$
+& $0.05$ \\
+& Interactions: $\{0, 5\}$
+& $5$ \\
+& Minimum samples per leaf: $\{2, 8\}$
+& $8$ \\
+& Maximum bins: $\{64, 256\}$
+& $64$ \\
+
 \midrule
-XGBoost & max.\ depth $\in \{3, 4\}$ & \dots \\
-        & learning rate $\in \{0.003, 0.01\}$ & \dots \\
-        & number of trees $\in \{30, 100, 300, 1000\}$ & \dots \\
+
+\multirow{3}{*}{XGBoost}
+& Maximum depth: $\{3, 4\}$
+& $4$ \\
+& Learning rate: $\{0.003, 0.01\}$
+& $0.01$ \\
+& Number of trees: $\{30, 100, 300, 1000\}$
+& $1000$ \\
+
 \bottomrule
-\end{tabular}
-\caption{Hyperparameters tested and the values selected by cross-validated ROC
-AUC. For logistic regression, the selected $C$ is given without and with the log
-transformation.}
+\end{tabularx}
+
+\caption{Hyperparameters tested and values selected by cross-validated ROC AUC.
+For logistic regression, selected $C$ values are reported without and with
+the log transformation, respectively.}
 \label{tab:grids}
 \end{table}
 
